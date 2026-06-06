@@ -1,9 +1,13 @@
 import hashlib
+import os
 import secrets
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+from dotenv import load_dotenv
 
-# In a production app, we would load this from environment variables
-SECRET_KEY = "quiniela_mundial_2026_super_secret_key_change_me_in_prod"
+_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.env")
+load_dotenv(_env_path)
+
+SECRET_KEY = os.environ.get("SECRET_KEY", "quiniela_mundial_2026_super_secret_key_change_me_in_prod")
 serializer = URLSafeTimedSerializer(SECRET_KEY, salt="auth-salt")
 
 def hash_password(password: str) -> str:
