@@ -11,11 +11,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import datetime
-from typing import List, Optional
+from typing import List
 
 from database import get_db_connection, init_db
 from auth import hash_password, verify_password, generate_token, verify_token
-from models import UserAuth, PredictionInput, MatchInput, MatchResultInput, UserUpdateInput, UserPasswordInput, ScoringRulesUpdateInput, MatchUpdateInput
+from models import UserAuth, PredictionInput, MatchInput, MatchResultInput
 from scoring import calculate_points
 
 app = FastAPI(title="Quiniela Mundial 2026 API")
@@ -47,46 +47,7 @@ def is_match_locked(match_time_str: str) -> bool:
         print(f"Error parsing date {match_time_str}: {e}")
         return True  # Lock on error for safety
 
-# Helper: load scoring rules from DB as dict
-def get_scoring_rules_dict(cursor) -> dict:
-    cursor.execute("SELECT rule_key, points FROM scoring_rules")
-    rows = cursor.fetchall()
-    if not rows:
-        return {"outcome_correct": 3, "exact_score": 2, "home_goals": 1, "away_goals": 1}
-    return {row["rule_key"]: row["points"] for row in rows}
-
-# Helper: recalculate all scores for finished matches with current rules
-def recalculate_all_scores(cursor):
-    rules = get_scoring_rules_dict(cursor)
-    cursor.execute("SELECT id, home_score, away_score FROM matches WHERE status = 'finished'")
-    for match in cursor.fetchall():
-        cursor.execute(
-            "SELECT user_id, home_score, away_score FROM predictions WHERE match_id = %s",
-            (match["id"],)
-        )
-        for pred in cursor.fetchall():
-            pts = calculate_points(
-                pred["home_score"], pred["away_score"],
-                match["home_score"], match["away_score"],
-                rules=rules
-            )
-            cursor.execute("""
-                INSERT INTO scores (user_id, match_id, outcome_points, exact_points, home_goals_points, away_goals_points, total_points)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT(user_id, match_id) DO UPDATE SET
-                    outcome_points = EXCLUDED.outcome_points,
-                    exact_points = EXCLUDED.exact_points,
-                    home_goals_points = EXCLUDED.home_goals_points,
-                    away_goals_points = EXCLUDED.away_goals_points,
-                    total_points = EXCLUDED.total_points
-            """, (
-                pred["user_id"], match["id"],
-                pts["outcome_points"], pts["exact_points"],
-                pts["home_goals_points"], pts["away_goals_points"],
-                pts["total_points"]
-            ))
-
-# Helper: Get Current User
+# Dependency: Get Current User
 def get_current_user(request: Request):
     token = request.cookies.get("session_token")
     if not token:
@@ -125,7 +86,7 @@ def register(user: UserAuth):
     cursor = conn.cursor()
     try:
         # Check if username exists
-        cursor.execute("SELECT id FROM users WHERE username = %s", (user.username,))
+        cursor.execute("SELECT id FROM users WHERE username = ?", (user.username,))
         if cursor.fetchone():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -139,7 +100,7 @@ def register(user: UserAuth):
         
         hashed = hash_password(user.password)
         cursor.execute(
-            "INSERT INTO users (username, password_hash, is_admin) VALUES (%s, %s, %s)",
+            "INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, ?)",
             (user.username, hashed, is_admin)
         )
         conn.commit()
@@ -152,18 +113,12 @@ def login(user: UserAuth, response: Response):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT id, username, password_hash, is_admin, is_active FROM users WHERE username = %s", (user.username,))
+        cursor.execute("SELECT id, username, password_hash, is_admin FROM users WHERE username = ?", (user.username,))
         db_user = cursor.fetchone()
         if not db_user or not verify_password(user.password, db_user["password_hash"]):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Usuario o contraseña incorrectos."
-            )
-
-        if not db_user["is_active"]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Tu cuenta está desactivada. Contacta al administrador."
             )
         
         is_admin = bool(db_user["is_admin"])
@@ -203,12 +158,7 @@ def get_me(user = Depends(get_current_user)):
 # --- MATCH ENDPOINTS ---
 
 @app.get("/api/matches")
-def get_matches(
-    request: Request,
-    phase: Optional[str] = None,
-    round: Optional[int] = None,
-    group_name: Optional[str] = None
-):
+def get_matches(request: Request):
     # Optional authentication to include current user's predictions
     token = request.cookies.get("session_token")
     user_id = None
@@ -220,21 +170,7 @@ def get_matches(
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # Build dynamic query based on filters
-        where_clauses = []
-        params_list = []
-        if phase:
-            where_clauses.append("phase = %s")
-            params_list.append(phase)
-        if round is not None:
-            where_clauses.append("round = %s")
-            params_list.append(round)
-        if group_name:
-            where_clauses.append("group_name = %s")
-            params_list.append(group_name)
-
-        where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
-        cursor.execute(f"SELECT * FROM matches {where_sql} ORDER BY match_time ASC", params_list)
+        cursor.execute("SELECT * FROM matches ORDER BY match_time ASC")
         matches = [dict(m) for m in cursor.fetchall()]
         
         # Update match status on the fly based on current time (open/closed)
@@ -243,14 +179,14 @@ def get_matches(
             if m["status"] == "open" and is_match_locked(m["match_time"]):
                 # Mark as closed in DB
                 m["status"] = "closed"
-                cursor.execute("UPDATE matches SET status = 'closed' WHERE id = %s", (m["id"],))
+                cursor.execute("UPDATE matches SET status = 'closed' WHERE id = ?", (m["id"],))
                 conn.commit()
             
             # If user is authenticated, attach their prediction
             m["prediction"] = None
             if user_id:
                 cursor.execute(
-                    "SELECT home_score, away_score FROM predictions WHERE user_id = %s AND match_id = %s",
+                    "SELECT home_score, away_score FROM predictions WHERE user_id = ? AND match_id = ?",
                     (user_id, m["id"])
                 )
                 pred = cursor.fetchone()
@@ -273,7 +209,7 @@ def save_prediction(pred: PredictionInput, user = Depends(get_current_user)):
     cursor = conn.cursor()
     try:
         # Check if match exists and its status
-        cursor.execute("SELECT status, match_time FROM matches WHERE id = %s", (pred.match_id,))
+        cursor.execute("SELECT status, match_time FROM matches WHERE id = ?", (pred.match_id,))
         match = cursor.fetchone()
         if not match:
             raise HTTPException(
@@ -291,10 +227,10 @@ def save_prediction(pred: PredictionInput, user = Depends(get_current_user)):
         # Insert or update prediction
         cursor.execute("""
             INSERT INTO predictions (user_id, match_id, home_score, away_score)
-            VALUES (%s, %s, %s, %s)
+            VALUES (?, ?, ?, ?)
             ON CONFLICT(user_id, match_id) DO UPDATE SET
-                home_score = EXCLUDED.home_score,
-                away_score = EXCLUDED.away_score
+                home_score = excluded.home_score,
+                away_score = excluded.away_score
         """, (user["user_id"], pred.match_id, pred.home_score, pred.away_score))
         
         conn.commit()
@@ -326,7 +262,7 @@ def get_history(user = Depends(get_current_user)):
             FROM predictions p
             JOIN matches m ON p.match_id = m.id
             LEFT JOIN scores s ON p.user_id = s.user_id AND p.match_id = s.match_id
-            WHERE p.user_id = %s
+            WHERE p.user_id = ?
             ORDER BY m.match_time DESC
         """, (user["user_id"],))
         
@@ -347,8 +283,8 @@ def get_leaderboard():
             SELECT 
                 ROW_NUMBER() OVER (ORDER BY COALESCE(SUM(s.total_points), 0) DESC, u.username ASC) as position,
                 u.username,
-                COALESCE(SUM(CASE WHEN s.outcome_points > 0 THEN 1 ELSE 0 END), 0) AS matches_guessed,
-                COALESCE(SUM(CASE WHEN s.exact_points > 0 THEN 1 ELSE 0 END), 0) AS exact_scores,
+                COALESCE(SUM(CASE WHEN s.outcome_points = 3 THEN 1 ELSE 0 END), 0) AS matches_guessed,
+                COALESCE(SUM(CASE WHEN s.exact_points = 2 THEN 1 ELSE 0 END), 0) AS exact_scores,
                 COALESCE(SUM(s.total_points), 0) AS total_points
             FROM users u
             LEFT JOIN scores s ON u.id = s.user_id
@@ -369,12 +305,11 @@ def add_match(match: MatchInput, admin = Depends(get_current_admin)):
     cursor = conn.cursor()
     try:
         cursor.execute(
-            "INSERT INTO matches (home_team, away_team, match_time, status, phase, group_name, round) VALUES (%s, %s, %s, 'open', %s, %s, %s) RETURNING id",
-            (match.home_team, match.away_team, match.match_time, match.phase, match.group_name.upper(), match.round)
+            "INSERT INTO matches (home_team, away_team, match_time, status) VALUES (?, ?, ?, 'open')",
+            (match.home_team, match.away_team, match.match_time)
         )
-        new_id = cursor.fetchone()["id"]
         conn.commit()
-        return {"message": "Partido agregado exitosamente.", "id": new_id}
+        return {"message": "Partido agregado exitosamente.", "id": cursor.lastrowid}
     finally:
         conn.close()
 
@@ -384,7 +319,7 @@ def set_result(match_id: int, result: MatchResultInput, admin = Depends(get_curr
     cursor = conn.cursor()
     try:
         # Check if match exists
-        cursor.execute("SELECT * FROM matches WHERE id = %s", (match_id,))
+        cursor.execute("SELECT * FROM matches WHERE id = ?", (match_id,))
         match = cursor.fetchone()
         if not match:
             raise HTTPException(
@@ -394,30 +329,29 @@ def set_result(match_id: int, result: MatchResultInput, admin = Depends(get_curr
             
         # Update match scores and mark status as finished
         cursor.execute(
-            "UPDATE matches SET home_score = %s, away_score = %s, status = 'finished' WHERE id = %s",
+            "UPDATE matches SET home_score = ?, away_score = ?, status = 'finished' WHERE id = ?",
             (result.home_score, result.away_score, match_id)
         )
         
         # Select all predictions for this match to calculate and record scores
-        cursor.execute("SELECT user_id, home_score, away_score FROM predictions WHERE match_id = %s", (match_id,))
+        cursor.execute("SELECT user_id, home_score, away_score FROM predictions WHERE match_id = ?", (match_id,))
         predictions = cursor.fetchall()
         
         for pred in predictions:
             points_breakdown = calculate_points(
                 pred["home_score"], pred["away_score"], 
-                result.home_score, result.away_score,
-                rules=get_scoring_rules_dict(cursor)
+                result.home_score, result.away_score
             )
             
             cursor.execute("""
                 INSERT INTO scores (user_id, match_id, outcome_points, exact_points, home_goals_points, away_goals_points, total_points)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(user_id, match_id) DO UPDATE SET
-                    outcome_points = EXCLUDED.outcome_points,
-                    exact_points = EXCLUDED.exact_points,
-                    home_goals_points = EXCLUDED.home_goals_points,
-                    away_goals_points = EXCLUDED.away_goals_points,
-                    total_points = EXCLUDED.total_points
+                    outcome_points = excluded.outcome_points,
+                    exact_points = excluded.exact_points,
+                    home_goals_points = excluded.home_goals_points,
+                    away_goals_points = excluded.away_goals_points,
+                    total_points = excluded.total_points
             """, (
                 pred["user_id"],
                 match_id,
@@ -438,223 +372,15 @@ def close_match(match_id: int, admin = Depends(get_current_admin)):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT * FROM matches WHERE id = %s", (match_id,))
+        cursor.execute("SELECT * FROM matches WHERE id = ?", (match_id,))
         if not cursor.fetchone():
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Partido no encontrado."
             )
-        cursor.execute("UPDATE matches SET status = 'closed' WHERE id = %s", (match_id,))
+        cursor.execute("UPDATE matches SET status = 'closed' WHERE id = ?", (match_id,))
         conn.commit()
         return {"message": "El partido ha sido cerrado para pronósticos."}
-    finally:
-        conn.close()
-
-
-@app.put("/api/admin/matches/{match_id}")
-def update_match(match_id: int, data: MatchUpdateInput, admin = Depends(get_current_admin)):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT * FROM matches WHERE id = %s", (match_id,))
-        if not cursor.fetchone():
-            raise HTTPException(status_code=404, detail="Partido no encontrado.")
-
-        fields = []
-        values = []
-        if data.home_team  is not None: fields.append("home_team = %s");  values.append(data.home_team)
-        if data.away_team  is not None: fields.append("away_team = %s");  values.append(data.away_team)
-        if data.match_time is not None: fields.append("match_time = %s"); values.append(data.match_time)
-        if data.phase      is not None: fields.append("phase = %s");      values.append(data.phase)
-        if data.group_name is not None: fields.append("group_name = %s"); values.append(data.group_name.upper())
-        if data.round      is not None: fields.append("round = %s");      values.append(data.round)
-        if data.status     is not None: fields.append("status = %s");     values.append(data.status)
-
-        if not fields:
-            raise HTTPException(status_code=400, detail="No se enviaron campos para actualizar.")
-
-        values.append(match_id)
-        cursor.execute(f"UPDATE matches SET {', '.join(fields)} WHERE id = %s", values)
-        conn.commit()
-        return {"message": "Partido actualizado correctamente."}
-    finally:
-        conn.close()
-
-
-@app.delete("/api/admin/matches/{match_id}")
-def delete_match(match_id: int, admin = Depends(get_current_admin)):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT * FROM matches WHERE id = %s", (match_id,))
-        if not cursor.fetchone():
-            raise HTTPException(status_code=404, detail="Partido no encontrado.")
-        cursor.execute("DELETE FROM matches WHERE id = %s", (match_id,))
-        conn.commit()
-        return {"message": "Partido eliminado correctamente."}
-    finally:
-        conn.close()
-
-
-@app.get("/api/admin/matches/{match_id}/predictions")
-def get_match_predictions(match_id: int, admin = Depends(get_current_admin)):
-    """Returns all user predictions for a match, with scores if finished."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT * FROM matches WHERE id = %s", (match_id,))
-        match = cursor.fetchone()
-        if not match:
-            raise HTTPException(status_code=404, detail="Partido no encontrado.")
-
-        cursor.execute("""
-            SELECT
-                u.id        AS user_id,
-                u.username,
-                p.home_score AS pred_home,
-                p.away_score AS pred_away,
-                s.outcome_points,
-                s.exact_points,
-                s.home_goals_points,
-                s.away_goals_points,
-                s.total_points
-            FROM users u
-            LEFT JOIN predictions p ON u.id = p.user_id AND p.match_id = %s
-            LEFT JOIN scores     s ON u.id = s.user_id AND s.match_id = %s
-            WHERE u.is_active = 1
-            ORDER BY COALESCE(s.total_points, -1) DESC, u.username ASC
-        """, (match_id, match_id))
-
-        rows = [dict(r) for r in cursor.fetchall()]
-        return {
-            "match": dict(match),
-            "predictions": rows
-        }
-    finally:
-        conn.close()
-
-@app.get("/api/admin/users")
-def get_users(admin = Depends(get_current_admin)):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("""
-            SELECT u.id, u.username, u.is_admin, u.is_active,
-                   COALESCE(SUM(s.total_points), 0) AS total_points,
-                   COUNT(DISTINCT p.match_id) AS predictions_count
-            FROM users u
-            LEFT JOIN scores s ON u.id = s.user_id
-            LEFT JOIN predictions p ON u.id = p.user_id
-            GROUP BY u.id
-            ORDER BY u.username ASC
-        """)
-        return [dict(row) for row in cursor.fetchall()]
-    finally:
-        conn.close()
-
-
-@app.put("/api/admin/users/{user_id}")
-def update_user(user_id: int, data: UserUpdateInput, admin = Depends(get_current_admin)):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
-        db_user = cursor.fetchone()
-        if not db_user:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado.")
-
-        fields = []
-        values = []
-        if data.username is not None:
-            cursor.execute("SELECT id FROM users WHERE username = %s AND id != %s", (data.username, user_id))
-            if cursor.fetchone():
-                raise HTTPException(status_code=400, detail="Ese nombre de usuario ya existe.")
-            fields.append("username = %s")
-            values.append(data.username)
-        if data.is_admin is not None:
-            fields.append("is_admin = %s")
-            values.append(1 if data.is_admin else 0)
-        if data.is_active is not None:
-            fields.append("is_active = %s")
-            values.append(1 if data.is_active else 0)
-
-        if not fields:
-            raise HTTPException(status_code=400, detail="No se enviaron campos para actualizar.")
-
-        values.append(user_id)
-        cursor.execute(f"UPDATE users SET {', '.join(fields)} WHERE id = %s", values)
-        conn.commit()
-        return {"message": "Usuario actualizado correctamente."}
-    finally:
-        conn.close()
-
-
-@app.post("/api/admin/users/{user_id}/password")
-def change_user_password(user_id: int, data: UserPasswordInput, admin = Depends(get_current_admin)):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT id FROM users WHERE id = %s", (user_id,))
-        if not cursor.fetchone():
-            raise HTTPException(status_code=404, detail="Usuario no encontrado.")
-        cursor.execute(
-            "UPDATE users SET password_hash = %s WHERE id = %s",
-            (hash_password(data.new_password), user_id)
-        )
-        conn.commit()
-        return {"message": "Contraseña actualizada correctamente."}
-    finally:
-        conn.close()
-
-
-@app.delete("/api/admin/users/{user_id}")
-def delete_user(user_id: int, admin = Depends(get_current_admin)):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        # Prevent admin from deleting themselves
-        if admin["user_id"] == user_id:
-            raise HTTPException(status_code=400, detail="No puedes eliminar tu propia cuenta.")
-        cursor.execute("SELECT id FROM users WHERE id = %s", (user_id,))
-        if not cursor.fetchone():
-            raise HTTPException(status_code=404, detail="Usuario no encontrado.")
-        cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
-        conn.commit()
-        return {"message": "Usuario eliminado correctamente."}
-    finally:
-        conn.close()
-
-
-# --- ADMIN: SCORING RULES ---
-
-@app.get("/api/admin/scoring-rules")
-def get_scoring_rules(admin = Depends(get_current_admin)):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT * FROM scoring_rules ORDER BY id ASC")
-        return [dict(row) for row in cursor.fetchall()]
-    finally:
-        conn.close()
-
-
-@app.put("/api/admin/scoring-rules")
-def update_scoring_rules(data: ScoringRulesUpdateInput, admin = Depends(get_current_admin)):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        for rule in data.rules:
-            cursor.execute(
-                "UPDATE scoring_rules SET points = %s WHERE rule_key = %s",
-                (rule.points, rule.rule_key)
-            )
-        if data.recalculate:
-            recalculate_all_scores(cursor)
-        conn.commit()
-        msg = "Reglas actualizadas."
-        if data.recalculate:
-            msg += " Puntos recalculados para todos los partidos finalizados."
-        return {"message": msg}
     finally:
         conn.close()
 
