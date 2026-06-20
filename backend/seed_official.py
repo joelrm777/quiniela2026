@@ -1,3 +1,4 @@
+import sqlite3
 import os
 import sys
 
@@ -19,27 +20,27 @@ def seed_official_matches():
     cursor.execute("DELETE FROM matches")
     
     # 2. Make sure default test users exist
-    cursor.execute("SELECT id FROM users WHERE username = %s", ("admin",))
+    cursor.execute("SELECT id FROM users WHERE username = ?", ("admin",))
     admin_row = cursor.fetchone()
     if not admin_row:
-        cursor.execute("INSERT INTO users (username, password_hash, is_admin) VALUES (%s, %s, 1) RETURNING id", ("admin", hash_password("admin126")))
-        admin_id = cursor.fetchone()["id"]
+        cursor.execute("INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, 1)", ("admin", hash_password("admin126")))
+        admin_id = cursor.lastrowid
     else:
         admin_id = admin_row["id"]
         
-    cursor.execute("SELECT id FROM users WHERE username = %s", ("juan",))
+    cursor.execute("SELECT id FROM users WHERE username = ?", ("juan",))
     juan_row = cursor.fetchone()
     if not juan_row:
-        cursor.execute("INSERT INTO users (username, password_hash, is_admin) VALUES (%s, %s, 0) RETURNING id", ("juan", hash_password("juan26")))
-        juan_id = cursor.fetchone()["id"]
+        cursor.execute("INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, 0)", ("juan", hash_password("juan26")))
+        juan_id = cursor.lastrowid
     else:
         juan_id = juan_row["id"]
 
-    cursor.execute("SELECT id FROM users WHERE username = %s", ("maria",))
+    cursor.execute("SELECT id FROM users WHERE username = ?", ("maria",))
     maria_row = cursor.fetchone()
     if not maria_row:
-        cursor.execute("INSERT INTO users (username, password_hash, is_admin) VALUES (%s, %s, 0) RETURNING id", ("maria", hash_password("maria26")))
-        maria_id = cursor.fetchone()["id"]
+        cursor.execute("INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, 0)", ("maria", hash_password("maria26")))
+        maria_id = cursor.lastrowid
     else:
         maria_id = maria_row["id"]
 
@@ -47,64 +48,63 @@ def seed_official_matches():
 
     # 3. Official Group Stage Matches for World Cup 2026 (first 22 fixtures)
     # Formatted exactly in the user's timezone (-06:00 offset)
-    # Tuple: (home_team, away_team, match_time, group_name, round/jornada)
     official_matches = [
-        # Thursday, June 11, 2026 — Grupo A
-        ("México", "Sudáfrica", "2026-06-11T13:00:00-06:00", "A", 1),
-        ("Corea del Sur", "Chequia", "2026-06-11T20:00:00-06:00", "A", 1),
+        # Thursday, June 11, 2026
+        ("México", "Sudáfrica", "2026-06-11T13:00:00-06:00"),
+        ("Corea del Sur", "Chequia", "2026-06-11T20:00:00-06:00"),
         
-        # Friday, June 12, 2026 — Grupo B
-        ("Canadá", "Bosnia y H.", "2026-06-12T13:00:00-06:00", "B", 1),
-        ("Estados Unidos", "Paraguay", "2026-06-12T19:00:00-06:00", "B", 1),
+        # Friday, June 12, 2026
+        ("Canadá", "Bosnia y H.", "2026-06-12T13:00:00-06:00"),
+        ("Estados Unidos", "Paraguay", "2026-06-12T19:00:00-06:00"),
         
-        # Saturday, June 13, 2026 — Grupos C y D
-        ("Catar", "Suiza", "2026-06-13T13:00:00-06:00", "C", 1),
-        ("Brasil", "Marruecos", "2026-06-13T16:00:00-06:00", "C", 1),
-        ("Haití", "Escocia", "2026-06-13T19:00:00-06:00", "D", 1),
-        ("Australia", "Turquía", "2026-06-13T22:00:00-06:00", "D", 1),
+        # Saturday, June 13, 2026
+        ("Catar", "Suiza", "2026-06-13T13:00:00-06:00"),
+        ("Brasil", "Marruecos", "2026-06-13T16:00:00-06:00"),
+        ("Haití", "Escocia", "2026-06-13T19:00:00-06:00"),
+        ("Australia", "Turquía", "2026-06-13T22:00:00-06:00"),
         
-        # Sunday, June 14, 2026 — Grupos E y F
-        ("Alemania", "Curazao", "2026-06-14T11:00:00-06:00", "E", 1),
-        ("Países Bajos", "Japón", "2026-06-14T14:00:00-06:00", "E", 1),
-        ("Costa de Marfil", "Ecuador", "2026-06-14T17:00:00-06:00", "F", 1),
-        ("Suecia", "Túnez", "2026-06-14T20:00:00-06:00", "F", 1),
+        # Sunday, June 14, 2026
+        ("Alemania", "Curazao", "2026-06-14T11:00:00-06:00"),
+        ("Países Bajos", "Japón", "2026-06-14T14:00:00-06:00"),
+        ("Costa de Marfil", "Ecuador", "2026-06-14T17:00:00-06:00"),
+        ("Suecia", "Túnez", "2026-06-14T20:00:00-06:00"),
         
-        # Monday, June 15, 2026 — Grupos G y H
-        ("España", "Cabo Verde", "2026-06-15T10:00:00-06:00", "G", 1),
-        ("Bélgica", "Egipto", "2026-06-15T13:00:00-06:00", "G", 1),
-        ("Arabia Saudita", "Uruguay", "2026-06-15T16:00:00-06:00", "H", 1),
-        ("Irán", "Nueva Zelanda", "2026-06-15T19:00:00-06:00", "H", 1),
+        # Monday, June 15, 2026
+        ("España", "Cabo Verde", "2026-06-15T10:00:00-06:00"),
+        ("Bélgica", "Egipto", "2026-06-15T13:00:00-06:00"),
+        ("Arabia Saudita", "Uruguay", "2026-06-15T16:00:00-06:00"),
+        ("Irán", "Nueva Zelanda", "2026-06-15T19:00:00-06:00"),
         
-        # Tuesday, June 16, 2026 — Grupos I y J
-        ("Francia", "Senegal", "2026-06-16T13:00:00-06:00", "I", 1),
-        ("Irak", "Noruega", "2026-06-16T16:00:00-06:00", "I", 1),
-        ("Argentina", "Argelia", "2026-06-16T19:00:00-06:00", "J", 1),
-        ("Austria", "Jordania", "2026-06-16T22:00:00-06:00", "J", 1),
+        # Tuesday, June 16, 2026
+        ("Francia", "Senegal", "2026-06-16T13:00:00-06:00"),
+        ("Irak", "Noruega", "2026-06-16T16:00:00-06:00"),
+        ("Argentina", "Argelia", "2026-06-16T19:00:00-06:00"),
+        ("Austria", "Jordania", "2026-06-16T22:00:00-06:00"),
         
-        # Wednesday, June 17, 2026 — Grupo K
-        ("Portugal", "RD Congo", "2026-06-17T11:00:00-06:00", "K", 1),
-        ("Inglaterra", "Croacia", "2026-06-17T14:00:00-06:00", "K", 1),
+        # Wednesday, June 17, 2026
+        ("Portugal", "RD Congo", "2026-06-17T11:00:00-06:00"),
+        ("Inglaterra", "Croacia", "2026-06-17T14:00:00-06:00"),
     ]
 
-    for home, away, m_time, group, jornada in official_matches:
+    for home, away, m_time in official_matches:
         cursor.execute(
-            "INSERT INTO matches (home_team, away_team, match_time, status, phase, group_name, round) VALUES (%s, %s, %s, 'open', 'grupos', %s, %s)",
-            (home, away, m_time, group, jornada)
+            "INSERT INTO matches (home_team, away_team, match_time, status) VALUES (?, ?, ?, 'open')",
+            (home, away, m_time)
         )
     
     print(f"Successfully loaded {len(official_matches)} official matches.")
     
     # 4. Let's add some initial sample predictions for testing
     # Retrieve match IDs for the first couple of matches
-    cursor.execute("SELECT id FROM matches WHERE home_team = %s AND away_team = %s", ("México", "Sudáfrica"))
+    cursor.execute("SELECT id FROM matches WHERE home_team = ? AND away_team = ?", ("México", "Sudáfrica"))
     m1_row = cursor.fetchone()
     
     if m1_row:
         m1_id = m1_row["id"]
         # Juan predicts México wins 2 - 1
-        cursor.execute("INSERT INTO predictions (user_id, match_id, home_score, away_score) VALUES (%s, %s, 2, 1)", (juan_id, m1_id))
+        cursor.execute("INSERT INTO predictions (user_id, match_id, home_score, away_score) VALUES (?, ?, 2, 1)", (juan_id, m1_id))
         # Maria predicts a draw 1 - 1
-        cursor.execute("INSERT INTO predictions (user_id, match_id, home_score, away_score) VALUES (%s, %s, 1, 1)", (maria_id, m1_id))
+        cursor.execute("INSERT INTO predictions (user_id, match_id, home_score, away_score) VALUES (?, ?, 1, 1)", (maria_id, m1_id))
         print("Prepopulated test predictions for México vs Sudáfrica.")
 
     conn.commit()
