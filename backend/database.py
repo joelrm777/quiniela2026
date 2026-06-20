@@ -1,106 +1,77 @@
+import sqlite3
 import os
-import psycopg2
-import psycopg2.extras
-from dotenv import load_dotenv
 
-# Load environment variables from config.env at project root
-_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.env")
-load_dotenv(_env_path)
-
-DATABASE_URL = os.environ.get("DATABASE_URL")
-if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL not set. Check config.env")
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "quiniela.db")
 
 def get_db_connection():
-    conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
-
+    
+    # Enable foreign keys
+    cursor.execute("PRAGMA foreign_keys = ON;")
+    
     # 1. Users Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
-        is_admin INTEGER DEFAULT 0,
-        is_active INTEGER DEFAULT 1
+        is_admin INTEGER DEFAULT 0
     );
     """)
-
+    
     # 2. Matches Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS matches (
-        id SERIAL PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         home_team TEXT NOT NULL,
         away_team TEXT NOT NULL,
         match_time TEXT NOT NULL,
         home_score INTEGER,
         away_score INTEGER,
-        status TEXT DEFAULT 'open',
-        phase TEXT DEFAULT 'grupos',
-        group_name TEXT DEFAULT '',
-        round INTEGER DEFAULT 1
+        status TEXT DEFAULT 'open'
     );
     """)
-
+    
     # 3. Predictions Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS predictions (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        match_id INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        match_id INTEGER NOT NULL,
         home_score INTEGER NOT NULL,
         away_score INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE,
         UNIQUE(user_id, match_id)
     );
     """)
-
+    
     # 4. Scores Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS scores (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        match_id INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        match_id INTEGER NOT NULL,
         outcome_points INTEGER DEFAULT 0,
         exact_points INTEGER DEFAULT 0,
         home_goals_points INTEGER DEFAULT 0,
         away_goals_points INTEGER DEFAULT 0,
         total_points INTEGER DEFAULT 0,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE,
         UNIQUE(user_id, match_id)
     );
     """)
-
-    # 5. Scoring Rules Table
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS scoring_rules (
-        id SERIAL PRIMARY KEY,
-        rule_key TEXT UNIQUE NOT NULL,
-        rule_label TEXT NOT NULL,
-        rule_description TEXT DEFAULT '',
-        points INTEGER NOT NULL DEFAULT 0
-    );
-    """)
-
-    # Seed default scoring rules if empty
-    cursor.execute("SELECT COUNT(*) AS cnt FROM scoring_rules")
-    if cursor.fetchone()["cnt"] == 0:
-        default_rules = [
-            ("outcome_correct", "Resultado Correcto",      "Acertar quién gana o si es empate",         3),
-            ("exact_score",     "Marcador Exacto",         "Acertar el marcador exacto del partido",     2),
-            ("home_goals",      "Goles Local Exactos",     "Acertar los goles del equipo local",         1),
-            ("away_goals",      "Goles Visitante Exactos", "Acertar los goles del equipo visitante",     1),
-        ]
-        cursor.executemany(
-            "INSERT INTO scoring_rules (rule_key, rule_label, rule_description, points) VALUES (%s, %s, %s, %s)",
-            default_rules
-        )
-
+    
     conn.commit()
     conn.close()
-    print("Database initialized successfully (Supabase/PostgreSQL)")
+    print(f"Database initialized successfully at: {DB_PATH}")
 
 if __name__ == "__main__":
     init_db()
