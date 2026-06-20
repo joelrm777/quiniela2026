@@ -11,8 +11,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
     <!-- FontAwesome for Premium Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- SheetJS for Excel export -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <!-- Styling -->
     <link rel="stylesheet" href="frontend/style.css">
 </head>
@@ -116,74 +114,9 @@
 
             <!-- TAB 1: ACTIVE MATCHES LIST -->
             <div id="tab-content-matches" class="tab-content active">
-
-                <!-- PHASE NAVIGATION -->
-                <nav class="phase-nav" id="phase-nav-el">
-                    <button class="phase-btn active" id="phase-btn-grupos" onclick="switchPhase('grupos')">
-                        <i class="fa-solid fa-layer-group"></i>
-                        <span>Fase de Grupos</span>
-                    </button>
-                    <button class="phase-btn" id="phase-btn-ronda32" onclick="switchPhase('ronda32')">
-                        <i class="fa-solid fa-sitemap"></i>
-                        <span>Ronda de 32</span>
-                    </button>
-                    <button class="phase-btn" id="phase-btn-octavos" onclick="switchPhase('octavos')">
-                        <i class="fa-solid fa-chess-board"></i>
-                        <span>Octavos de Final</span>
-                    </button>
-                    <button class="phase-btn" id="phase-btn-cuartos" onclick="switchPhase('cuartos')">
-                        <i class="fa-solid fa-shield-halved"></i>
-                        <span>Cuartos de Final</span>
-                    </button>
-                    <button class="phase-btn" id="phase-btn-semifinal" onclick="switchPhase('semifinal')">
-                        <i class="fa-solid fa-medal"></i>
-                        <span>Semifinales</span>
-                    </button>
-                    <button class="phase-btn" id="phase-btn-tercer_lugar" onclick="switchPhase('tercer_lugar')">
-                        <i class="fa-solid fa-award"></i>
-                        <span>Tercer Lugar</span>
-                    </button>
-                    <button class="phase-btn" id="phase-btn-final" onclick="switchPhase('final')">
-                        <i class="fa-solid fa-trophy"></i>
-                        <span>Gran Final</span>
-                    </button>
-                </nav>
-
-                <!-- GRUPO SUB-FILTERS (only visible when phase = grupos) -->
-                <div id="grupos-filters" class="grupos-filters">
-                    <div class="filter-row">
-                        <div class="filter-group">
-                            <span class="filter-label"><i class="fa-solid fa-calendar-days"></i> Jornada:</span>
-                            <div class="filter-chips">
-                                <button class="filter-chip active" id="round-btn-1" onclick="switchRound(1)">Jornada 1</button>
-                                <button class="filter-chip" id="round-btn-2" onclick="switchRound(2)">Jornada 2</button>
-                                <button class="filter-chip" id="round-btn-3" onclick="switchRound(3)">Jornada 3</button>
-                            </div>
-                        </div>
-                        <div class="filter-group">
-                            <span class="filter-label"><i class="fa-solid fa-flag"></i> Grupo:</span>
-                            <div class="filter-chips">
-                                <button class="filter-chip active" id="group-btn-all" onclick="switchGroup('all')">Todos</button>
-                                <button class="filter-chip" id="group-btn-A" onclick="switchGroup('A')">A</button>
-                                <button class="filter-chip" id="group-btn-B" onclick="switchGroup('B')">B</button>
-                                <button class="filter-chip" id="group-btn-C" onclick="switchGroup('C')">C</button>
-                                <button class="filter-chip" id="group-btn-D" onclick="switchGroup('D')">D</button>
-                                <button class="filter-chip" id="group-btn-E" onclick="switchGroup('E')">E</button>
-                                <button class="filter-chip" id="group-btn-F" onclick="switchGroup('F')">F</button>
-                                <button class="filter-chip" id="group-btn-G" onclick="switchGroup('G')">G</button>
-                                <button class="filter-chip" id="group-btn-H" onclick="switchGroup('H')">H</button>
-                                <button class="filter-chip" id="group-btn-I" onclick="switchGroup('I')">I</button>
-                                <button class="filter-chip" id="group-btn-J" onclick="switchGroup('J')">J</button>
-                                <button class="filter-chip" id="group-btn-K" onclick="switchGroup('K')">K</button>
-                                <button class="filter-chip" id="group-btn-L" onclick="switchGroup('L')">L</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="content-header">
-                    <h2 id="matches-section-title">Fase de Grupos &mdash; Jornada 1</h2>
-                    <p class="text-muted" id="matches-section-subtitle">Ingresa tus apuestas exactas de goles. Se bloquean automáticamente 1 hora antes de que inicie cada partido.</p>
+                    <h2>Pronósticos del Mundial 2026</h2>
+                    <p class="text-muted">Ingresa tus apuestas exactas de goles. Se bloquean automáticamente 1 hora antes de que inicie cada partido.</p>
                 </div>
                 <div class="matches-grid" id="active-matches-list">
                     <!-- Dynamic Matches Cards Inserted Here -->
@@ -254,338 +187,47 @@
                     <button class="btn btn-secondary btn-sm" onclick="showSection('dashboard-section')">
                         <i class="fa-solid fa-arrow-left"></i> Volver al Dashboard
                     </button>
-                    <h2>Panel de Administración</h2>
-                    <p class="text-muted">Gestiona partidos, usuarios y reglas de puntuación del torneo.</p>
+                    <h2>Panel de Administración de la Quiniela</h2>
+                    <p class="text-muted">Carga nuevos partidos de la Copa Mundial 2026 e introduce resultados finales oficiales para calcular puntos automáticamente.</p>
                 </div>
 
-                <!-- Admin Navigation Tabs -->
-                <div class="admin-nav-tabs">
-                    <button class="admin-nav-tab active" id="admin-nav-partidos" onclick="switchAdminTab('partidos')">
-                        <i class="fa-solid fa-futbol"></i> Partidos
-                    </button>
-                    <button class="admin-nav-tab" id="admin-nav-usuarios" onclick="switchAdminTab('usuarios')">
-                        <i class="fa-solid fa-users"></i> Usuarios
-                    </button>
-                    <button class="admin-nav-tab" id="admin-nav-puntuacion" onclick="switchAdminTab('puntuacion')">
-                        <i class="fa-solid fa-star"></i> Puntuación
-                    </button>
-                </div>
-
-                <!-- ===== TAB: PARTIDOS ===== -->
-                <div id="admin-content-partidos">
-                    <div class="admin-grid">
-                        <!-- Section A: Add new Match -->
-                        <div class="admin-card card-glass">
-                            <h3><i class="fa-solid fa-plus-circle text-gold"></i> Agregar Nuevo Partido</h3>
-                            <form id="form-add-match" onsubmit="handleAddMatch(event)">
-                                <div class="form-row">
-                                    <div class="form-group col">
-                                        <label for="match-home"><i class="fa-solid fa-flag"></i> Equipo Local</label>
-                                        <input type="text" id="match-home" name="home_team" placeholder="Ej: México" required>
-                                    </div>
-                                    <div class="form-group col">
-                                        <label for="match-away"><i class="fa-solid fa-flag"></i> Equipo Visitante</label>
-                                        <input type="text" id="match-away" name="away_team" placeholder="Ej: Argentina" required>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label for="match-time"><i class="fa-solid fa-calendar-days"></i> Fecha y Hora de Inicio</label>
-                                    <input type="datetime-local" id="match-time" name="match_time" required>
-                                    <small class="form-help">Ingresa la fecha y hora oficial en tu zona horaria local.</small>
-                                </div>
-                                <div class="form-row">
-                                    <div class="form-group col">
-                                        <label for="match-phase"><i class="fa-solid fa-sitemap"></i> Fase del Torneo</label>
-                                        <select id="match-phase" name="phase" onchange="toggleAdminGroupFields(this.value)">
-                                            <option value="grupos">Fase de Grupos</option>
-                                            <option value="ronda32">Ronda de 32</option>
-                                            <option value="octavos">Octavos de Final</option>
-                                            <option value="cuartos">Cuartos de Final</option>
-                                            <option value="semifinal">Semifinales</option>
-                                            <option value="tercer_lugar">Tercer Lugar</option>
-                                            <option value="final">Gran Final</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group col" id="admin-round-group">
-                                        <label for="match-round"><i class="fa-solid fa-calendar-days"></i> Jornada</label>
-                                        <select id="match-round" name="round">
-                                            <option value="1">Jornada 1</option>
-                                            <option value="2">Jornada 2</option>
-                                            <option value="3">Jornada 3</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-group" id="admin-group-name-group">
-                                    <label for="match-group"><i class="fa-solid fa-flag"></i> Grupo</label>
-                                    <select id="match-group" name="group_name">
-                                        <option value="A">Grupo A</option><option value="B">Grupo B</option>
-                                        <option value="C">Grupo C</option><option value="D">Grupo D</option>
-                                        <option value="E">Grupo E</option><option value="F">Grupo F</option>
-                                        <option value="G">Grupo G</option><option value="H">Grupo H</option>
-                                        <option value="I">Grupo I</option><option value="J">Grupo J</option>
-                                        <option value="K">Grupo K</option><option value="L">Grupo L</option>
-                                    </select>
-                                </div>
-                                <div id="add-match-msg" class="alert" style="display: none;"></div>
-                                <button type="submit" class="btn btn-primary btn-block">Agregar Partido <i class="fa-solid fa-save"></i></button>
-                            </form>
-                        </div>
-
-                        <!-- Section B: Enter official results -->
-                        <div class="admin-card card-glass">
-                            <h3><i class="fa-solid fa-clipboard-check text-accent"></i> Cargar Resultados Oficiales</h3>
-                            <p class="text-muted text-sm">Registrar el marcador final cerrará el partido y asignará puntuaciones automáticamente.</p>
-                            <div class="admin-matches-list" id="admin-matches-list-el">
-                                <!-- Dynamic admin matches for result entry -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Section C: Full match management (edit / delete) -->
-                    <div class="admin-card card-glass" style="margin-top: 20px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
-                            <h3><i class="fa-solid fa-list-check text-gold"></i> Gestionar Todos los Partidos</h3>
-                            <div class="filter-chips" id="admin-phase-filter-chips">
-                                <button class="filter-chip active" id="admin-phase-all" onclick="filterAdminMatches('all')">Todos</button>
-                                <button class="filter-chip" id="admin-phase-grupos" onclick="filterAdminMatches('grupos')">Grupos</button>
-                                <button class="filter-chip" id="admin-phase-ronda32" onclick="filterAdminMatches('ronda32')">R.32</button>
-                                <button class="filter-chip" id="admin-phase-octavos" onclick="filterAdminMatches('octavos')">Octavos</button>
-                                <button class="filter-chip" id="admin-phase-cuartos" onclick="filterAdminMatches('cuartos')">Cuartos</button>
-                                <button class="filter-chip" id="admin-phase-semifinal" onclick="filterAdminMatches('semifinal')">Semis</button>
-                                <button class="filter-chip" id="admin-phase-final" onclick="filterAdminMatches('final')">Final</button>
-                            </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="premium-table" id="admin-all-matches-table">
-                                <thead>
-                                    <tr>
-                                        <th>Partido</th>
-                                        <th>Fecha/Hora</th>
-                                        <th>Fase</th>
-                                        <th>Estado</th>
-                                        <th style="text-align:center;">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="admin-all-matches-body">
-                                    <tr><td colspan="5" class="text-center text-muted">Cargando...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ===== TAB: USUARIOS ===== -->
-                <div id="admin-content-usuarios" style="display: none;">
+                <div class="admin-grid">
+                    <!-- Section A: Load new Match -->
                     <div class="admin-card card-glass">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
-                            <h3><i class="fa-solid fa-users text-accent"></i> Administrar Usuarios</h3>
-                            <button class="btn btn-secondary btn-sm" onclick="loadAdminUsers()">
-                                <i class="fa-solid fa-rotate"></i> Actualizar
-                            </button>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="premium-table">
-                                <thead>
-                                    <tr>
-                                        <th>Usuario</th>
-                                        <th style="text-align:center;">Rol</th>
-                                        <th style="text-align:center;">Estado</th>
-                                        <th style="text-align:center;">Pronósticos</th>
-                                        <th style="text-align:center;">Puntos</th>
-                                        <th style="text-align:center;">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="admin-users-body">
-                                    <tr><td colspan="6" class="text-center text-muted">Cargando...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ===== TAB: PUNTUACIÓN ===== -->
-                <div id="admin-content-puntuacion" style="display: none;">
-                    <div class="admin-card card-glass" style="max-width: 640px;">
-                        <h3><i class="fa-solid fa-star text-gold"></i> Sistema de Puntuación</h3>
-                        <p class="text-muted text-sm" style="margin-bottom: 20px;">
-                            Define cuántos puntos otorga cada tipo de acierto. Los cambios se pueden aplicar retroactivamente a todos los partidos ya finalizados.
-                        </p>
-                        <form id="form-scoring-rules" onsubmit="handleUpdateScoringRules(event)">
-                            <div id="scoring-rules-fields">
-                                <!-- Dynamically filled by JS -->
-                                <p class="text-center text-muted"><i class="fa-solid fa-spinner fa-spin"></i> Cargando reglas...</p>
+                        <h3><i class="fa-solid fa-plus-circle text-gold"></i> Agregar Nuevo Partido</h3>
+                        <form id="form-add-match" onsubmit="handleAddMatch(event)">
+                            <div class="form-row">
+                                <div class="form-group col">
+                                    <label for="match-home"><i class="fa-solid fa-flag"></i> Equipo Local</label>
+                                    <input type="text" id="match-home" name="home_team" placeholder="Ej: México" required>
+                                </div>
+                                <div class="form-group col">
+                                    <label for="match-away"><i class="fa-solid fa-flag"></i> Equipo Visitante</label>
+                                    <input type="text" id="match-away" name="away_team" placeholder="Ej: Argentina" required>
+                                </div>
                             </div>
-                            <div class="form-group" style="margin-top: 20px;">
-                                <label class="scoring-checkbox-label">
-                                    <input type="checkbox" id="scoring-recalculate" name="recalculate">
-                                    <span>Recalcular puntos de todos los partidos ya finalizados con las nuevas reglas</span>
-                                </label>
+                            <div class="form-group">
+                                <label for="match-time"><i class="fa-solid fa-calendar-days"></i> Fecha y Hora de Inicio</label>
+                                <input type="datetime-local" id="match-time" name="match_time" required>
+                                <small class="form-help">Ingresa la fecha y hora oficial en tu zona horaria local.</small>
                             </div>
-                            <div id="scoring-rules-msg" class="alert" style="display: none;"></div>
-                            <button type="submit" class="btn btn-primary btn-block" style="margin-top: 16px;">
-                                <i class="fa-solid fa-save"></i> Guardar Reglas
-                            </button>
+                            <div id="add-match-msg" class="alert" style="display: none;"></div>
+                            <button type="submit" class="btn btn-primary btn-block">Agregar Partido <i class="fa-solid fa-save"></i></button>
                         </form>
                     </div>
-                </div>
 
+                    <!-- Section B: List matches for scoring -->
+                    <div class="admin-card card-glass">
+                        <h3><i class="fa-solid fa-clipboard-check text-accent"></i> Cargar Resultados Oficiales</h3>
+                        <p class="text-muted text-sm">Registrar el marcador final real cerrará el partido y asignará automáticamente las puntuaciones a todos los usuarios.</p>
+                        <div class="admin-matches-list" id="admin-matches-list-el">
+                            <!-- Dynamic admin matches for result entry -->
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
-
-    <!-- ===== MODAL: MATCH PREDICTIONS ===== -->
-    <div id="modal-match-predictions" class="modal-overlay" style="display:none;" onclick="closeModalOnBackdrop(event,'modal-match-predictions')">
-        <div class="modal-card modal-card-wide">
-            <div class="modal-header">
-                <div>
-                    <h3 id="pred-modal-title"><i class="fa-solid fa-chart-bar text-accent"></i> Pronósticos del Partido</h3>
-                    <p id="pred-modal-subtitle" class="text-muted text-sm" style="margin-top:4px;"></p>
-                </div>
-                <div style="display:flex; gap:10px; align-items:center;">
-                    <button id="btn-export-predictions" class="btn btn-success btn-sm" onclick="exportPredictionsToExcel()" style="display:none;">
-                        <i class="fa-solid fa-file-excel"></i> Exportar Excel
-                    </button>
-                    <button class="modal-close-btn" onclick="closeModal('modal-match-predictions')"><i class="fa-solid fa-xmark"></i></button>
-                </div>
-            </div>
-            <div class="table-responsive" style="max-height:55vh; overflow-y:auto;">
-                <table class="premium-table">
-                    <thead id="pred-modal-thead">
-                        <tr>
-                            <th>#</th>
-                            <th>Usuario</th>
-                            <th>Pronóstico</th>
-                            <th style="text-align:center;">Resultado</th>
-                            <th style="text-align:center;">Marcador</th>
-                            <th style="text-align:center;">Goles</th>
-                            <th style="text-align:center;">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pred-modal-tbody">
-                        <tr><td colspan="7" class="text-center"><i class="fa-solid fa-spinner fa-spin"></i></td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- ===== MODAL: EDIT MATCH ===== -->
-    <div id="modal-edit-match" class="modal-overlay" style="display:none;" onclick="closeModalOnBackdrop(event,'modal-edit-match')">
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3><i class="fa-solid fa-pencil text-gold"></i> Editar Partido</h3>
-                <button class="modal-close-btn" onclick="closeModal('modal-edit-match')"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <form id="form-edit-match" onsubmit="handleEditMatchSubmit(event)">
-                <input type="hidden" id="edit-match-id">
-                <div class="form-row">
-                    <div class="form-group col">
-                        <label>Equipo Local</label>
-                        <input type="text" id="edit-match-home" required>
-                    </div>
-                    <div class="form-group col">
-                        <label>Equipo Visitante</label>
-                        <input type="text" id="edit-match-away" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Fecha y Hora</label>
-                    <input type="datetime-local" id="edit-match-time" required>
-                </div>
-                <div class="form-row">
-                    <div class="form-group col">
-                        <label>Fase</label>
-                        <select id="edit-match-phase" onchange="toggleEditGroupFields(this.value)">
-                            <option value="grupos">Fase de Grupos</option>
-                            <option value="ronda32">Ronda de 32</option>
-                            <option value="octavos">Octavos de Final</option>
-                            <option value="cuartos">Cuartos de Final</option>
-                            <option value="semifinal">Semifinales</option>
-                            <option value="tercer_lugar">Tercer Lugar</option>
-                            <option value="final">Gran Final</option>
-                        </select>
-                    </div>
-                    <div class="form-group col">
-                        <label>Estado</label>
-                        <select id="edit-match-status">
-                            <option value="open">Abierto</option>
-                            <option value="closed">Cerrado</option>
-                            <option value="finished">Finalizado</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-row" id="edit-group-fields">
-                    <div class="form-group col">
-                        <label>Jornada</label>
-                        <select id="edit-match-round">
-                            <option value="1">Jornada 1</option>
-                            <option value="2">Jornada 2</option>
-                            <option value="3">Jornada 3</option>
-                        </select>
-                    </div>
-                    <div class="form-group col">
-                        <label>Grupo</label>
-                        <select id="edit-match-group">
-                            <option value="A">A</option><option value="B">B</option>
-                            <option value="C">C</option><option value="D">D</option>
-                            <option value="E">E</option><option value="F">F</option>
-                            <option value="G">G</option><option value="H">H</option>
-                            <option value="I">I</option><option value="J">J</option>
-                            <option value="K">K</option><option value="L">L</option>
-                        </select>
-                    </div>
-                </div>
-                <div id="edit-match-msg" class="alert" style="display:none;"></div>
-                <div style="display:flex; gap:12px; margin-top:8px;">
-                    <button type="button" class="btn btn-secondary" style="flex:1" onclick="closeModal('modal-edit-match')">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" style="flex:2"><i class="fa-solid fa-save"></i> Guardar Cambios</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- ===== MODAL: EDIT USER ===== -->
-    <div id="modal-edit-user" class="modal-overlay" style="display:none;" onclick="closeModalOnBackdrop(event,'modal-edit-user')">
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3><i class="fa-solid fa-user-pen text-accent"></i> Editar Usuario</h3>
-                <button class="modal-close-btn" onclick="closeModal('modal-edit-user')"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <!-- Form 1: Update user info -->
-            <form id="form-edit-user" onsubmit="handleEditUserSubmit(event)">
-                <input type="hidden" id="edit-user-id">
-                <div class="form-group">
-                    <label>Nombre de Usuario</label>
-                    <input type="text" id="edit-user-username" minlength="3" maxlength="50" required>
-                </div>
-                <div style="display:flex; gap:24px; margin: 8px 0 16px;">
-                    <label class="scoring-checkbox-label">
-                        <input type="checkbox" id="edit-user-is-admin">
-                        <span>Es Administrador</span>
-                    </label>
-                    <label class="scoring-checkbox-label">
-                        <input type="checkbox" id="edit-user-is-active">
-                        <span>Cuenta Activa</span>
-                    </label>
-                </div>
-                <div id="edit-user-msg" class="alert" style="display:none;"></div>
-                <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-save"></i> Guardar Cambios</button>
-            </form>
-
-            <!-- Form 2: Change password -->
-            <div class="modal-divider">
-                <span>Cambiar Contraseña</span>
-            </div>
-            <form id="form-change-password" onsubmit="handleChangePasswordSubmit(event)">
-                <div class="form-group">
-                    <label>Nueva Contraseña (mínimo 4 caracteres)</label>
-                    <input type="password" id="edit-user-new-password" minlength="4" placeholder="••••••••" required>
-                </div>
-                <div id="change-password-msg" class="alert" style="display:none;"></div>
-                <button type="submit" class="btn btn-secondary btn-block"><i class="fa-solid fa-key"></i> Cambiar Contraseña</button>
-            </form>
-        </div>
-    </div>
 
     <!-- FOOTER -->
     <footer class="main-footer">
